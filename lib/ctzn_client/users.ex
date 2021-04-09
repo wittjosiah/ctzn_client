@@ -3,7 +3,7 @@ defmodule CtznClient.Users do
   Documentation for `CtznClient.Users`
   """
 
-  def lookup_db_url(socket, user_id) do
-    WebSockex.cast(socket, {:send, {"users.lookupDbUrl", [user_id]}})
+  def lookup_db_url(client, user_id) do
+    GenServer.call(client, {:send, {"users.lookupDbUrl", [user_id]}}, 20_000)
   end
 end

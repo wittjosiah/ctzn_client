@@ -3,23 +3,23 @@ defmodule CtznClient.Communities do
   Documentation for `CtznClient.Communities`
   """
 
-  def create(socket, create_info) do
-    WebSockex.cast(socket, {:send, {"communities.create", [create_info]}})
+  def create(client, create_info) do
+    GenServer.call(client, {:send, {"communities.create", [create_info]}})
   end
 
-  def join(socket, community) do
-    WebSockex.cast(socket, {:send, {"communities.join", [community]}})
+  def join(client, community) do
+    GenServer.call(client, {:send, {"communities.join", [community]}})
   end
 
-  def remote_join(socket, opts) do
-    WebSockex.cast(socket, {:send, {"communities.remoteJoin", [opts]}})
+  def remote_join(client, opts) do
+    GenServer.call(client, {:send, {"communities.remoteJoin", [opts]}})
   end
 
-  def leave(socket, community) do
-    WebSockex.cast(socket, {:send, {"communities.leave", [community]}})
+  def leave(client, community) do
+    GenServer.call(client, {:send, {"communities.leave", [community]}})
   end
 
-  def remote_leave(socket, opts) do
-    WebSockex.cast(socket, {:send, {"communities.remoteLeave", [opts]}})
+  def remote_leave(client, opts) do
+    GenServer.call(client, {:send, {"communities.remoteLeave", [opts]}})
   end
 end

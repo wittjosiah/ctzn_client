@@ -5,10 +5,8 @@ defmodule CtznClient.Supervisor do
 
   use DynamicSupervisor
 
-  alias CtznClient.Socket
-
   def start_child(params) do
-    DynamicSupervisor.start_child(__MODULE__, {Socket, params})
+    DynamicSupervisor.start_child(__MODULE__, {CtznClient, params})
   end
 
   def start_link(_) do

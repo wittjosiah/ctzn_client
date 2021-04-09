@@ -3,19 +3,19 @@ defmodule CtznClient.Blob do
   Documentation for `CtznClient.Blob`
   """
 
-  def get(socket, database_id, key) do
-    WebSockex.cast(socket, {:send, {"blob.get", [database_id, key]}})
+  def get(client, database_id, key) do
+    GenServer.call(client, {:send, {"blob.get", [database_id, key]}})
   end
 
-  def create(socket, blob) do
-    WebSockex.cast(socket, {:send, {"blob.create", [blob]}})
+  def create(client, blob) do
+    GenServer.call(client, {:send, {"blob.create", [blob]}})
   end
 
-  def update(socket, key, blob) do
-    WebSockex.cast(socket, {:send, {"blob.update", [key, blob]}})
+  def update(client, key, blob) do
+    GenServer.call(client, {:send, {"blob.update", [key, blob]}})
   end
 
-  def delete(socket, key) do
-    WebSockex.cast(socket, {:send, {"blob.delete", [key]}})
+  def delete(client, key) do
+    GenServer.call(client, {:send, {"blob.delete", [key]}})
   end
 end

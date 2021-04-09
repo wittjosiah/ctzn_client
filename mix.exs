@@ -20,7 +20,6 @@ defmodule CtznClient.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:phoenix_pubsub, "~> 2.0"},
       {:websockex, "~> 0.4.3"}
     ]
   end

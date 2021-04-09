@@ -6,52 +6,47 @@ defmodule CtznClient.Socket do
   use WebSockex
 
   alias CtznClient.{Accounts, Session}
-  alias Phoenix.PubSub
   alias WebSockex.Conn
 
   require Logger
 
   @default_host "ctzn.one"
-  @initial_state %{client_id: nil, rpc_id: 1, session: nil, timeout: nil}
-  @socket_timeout 300_000
-
-  def process_name(client_id), do: {:via, Registry, {Registry.CtznClient, client_id}}
+  @initial_state %{client_id: nil, client_pid: nil, rpc_id: 1, session: nil}
 
   def start_link(params) do
     client_id = params[:client_id]
+    client_pid = params[:client_pid]
     host = params[:host] || @default_host
-    timeout = params[:timeout]
-    state = %{@initial_state | client_id: client_id, timeout: timeout}
-
-    metadata = [client_id: client_id]
-    Logger.info("Ctzn client connecting (ClientId=#{client_id})", metadata)
+    state = %{@initial_state | client_id: client_id, client_pid: client_pid}
 
     host
     |> get_uri()
-    |> WebSockex.start_link(__MODULE__, state, name: process_name(client_id))
+    |> WebSockex.start_link(__MODULE__, state)
   end
 
-  def handle_cast({:send, {method, params}}, state) do
-    metadata = [method: method, params: Jason.encode!(params)]
-    Logger.info("Ctzn client running method (Method=#{method})", metadata)
+  def handle_connect(%Conn{}, state) do
+    Logger.info("CTZN socket connected #{log_suffix(state)}", log_metadata(state))
+
+    {:ok, state}
+  end
+
+  def handle_cast({:send, {method, params}}, %{rpc_id: id} = state) do
+    metadata =
+      state
+      |> log_metadata()
+      |> Keyword.merge(method: method, message_id: id, params: Jason.encode!(params))
+
+    suffix = log_suffix(state, ["MessageId=#{id}", "Method=#{method}"])
+    Logger.debug("CTZN client running method #{suffix}", metadata)
 
     {id, state} = get_next_id(state)
     frame = build_frame!(id, method, params)
 
-    {:reply, frame, reset_timeout(state)}
+    {:reply, frame, state}
   end
 
-  def handle_connect(_, %{timeout: true} = state) do
-    timeout = Process.send_after(self(), :timeout, @socket_timeout)
-    state = %{state | timeout: timeout}
-    {:ok, state}
-  end
-
-  def handle_disconnect(
-        %{conn: %Conn{} = conn, reason: {:remote, _}},
-        %{client_id: client_id} = state
-      ) do
-    Logger.debug("Ctzn client reconnecting (ClientId=#{client_id})", client_id: client_id)
+  def handle_disconnect(%{conn: %Conn{} = conn, reason: {:remote, _}}, state) do
+    Logger.info("CTZN client reconnecting #{log_suffix(state)}", log_metadata(state))
 
     with %{session: %Session{session_id: session_id}} <- state,
          do: Accounts.resume_session(self(), session_id)
@@ -59,40 +54,32 @@ defmodule CtznClient.Socket do
     {:reconnect, conn, state}
   end
 
-  def handle_disconnect(_, %{client_id: client_id} = state) do
-    metadata = [client_id: client_id]
-    Logger.debug("Ctzn client terminating connection (ClientId=#{client_id})", metadata)
+  def handle_disconnect(_, state) do
+    Logger.info("CTZN client disconnecting #{log_suffix(state)}", log_metadata(state))
 
     {:ok, state}
   end
 
-  def handle_frame({:text, msg}, %{client_id: client_id} = state) do
-    result = parse_frame(msg)
-    PubSub.broadcast(__MODULE__, client_id, {:result, result})
+  def handle_frame({:text, msg}, %{client_pid: pid} = state) do
+    %{"result" => result, "id" => id} = parse_frame(msg)
+    send(pid, {:result, result})
 
-    metadata = [client_id: client_id, msg: msg]
-    Logger.debug("Ctzn client received frame (ClientId=#{client_id})", metadata)
+    metadata = state |> log_metadata() |> Keyword.merge(message: msg, message_id: id)
+    suffix = log_suffix(state, ["MessageId=#{id}"])
+    Logger.debug("CTZN client received frame #{suffix}", metadata)
 
-    state =
-      state
-      |> update_state(result)
-      |> reset_timeout()
-
-    {:ok, state}
-  end
-
-  def handle_info(:timeout, %{client_id: client_id} = state) do
-    metadata = [client_id: client_id]
-    Logger.debug("Ctzn client timing out due to inactivity (ClientId=#{client_id})", metadata)
-
-    {:close, state}
+    {:ok, update_state(state, result)}
   end
 
   def handle_ping(:ping, state) do
+    Logger.debug("CTZN client received ping #{log_suffix(state)}", log_metadata(state))
+
     {:reply, :pong, state}
   end
 
   def handle_pong(:pong, state) do
+    Logger.debug("CTZN client received pong #{log_suffix(state)}", log_metadata(state))
+
     {:ok, state}
   end
 
@@ -115,18 +102,17 @@ defmodule CtznClient.Socket do
   defp get_uri("localhost" <> _ = host), do: "ws://#{host}"
   defp get_uri(host), do: "wss://#{host}"
 
-  defp parse_frame(str_msg) do
-    with {:ok, msg} <- Jason.decode(str_msg),
-         %{"result" => result} <- msg,
-         do: result
+  defp log_metadata(%{client_id: client_id}), do: [client_id: client_id]
+
+  defp log_suffix(%{client_id: client_id}, base \\ []) do
+    suffix = Enum.join(["ClientId=#{client_id}" | base], ", ")
+    "(#{suffix})"
   end
 
-  defp reset_timeout(%{timeout: nil} = state), do: state
-
-  defp reset_timeout(%{timeout: timeout} = state) do
-    Process.cancel_timer(timeout)
-    timeout = Process.send_after(self(), :timeout, @socket_timeout)
-    %{state | timeout: timeout}
+  defp parse_frame(str_msg) do
+    with {:ok, msg} <- Jason.decode(str_msg),
+         %{"id" => _, "jsonrpc" => "2.0", "result" => _} <- msg,
+         do: msg
   end
 
   defp update_state(state, %{"sessionId" => _} = result) do

@@ -3,23 +3,23 @@ defmodule CtznClient.Table do
   Documentation for `CtznClient.Table`
   """
 
-  def list(socket, database_id, table_schema_id, opts \\ []) do
-    WebSockex.cast(socket, {:send, {"table.list", [database_id, table_schema_id, opts]}})
+  def list(client, database_id, table_schema_id, opts \\ []) do
+    GenServer.call(client, {:send, {"table.list", [database_id, table_schema_id, opts]}})
   end
 
-  def get(socket, database_id, table_schema_id, key) do
-    WebSockex.cast(socket, {:send, {"table.get", [database_id, table_schema_id, key]}})
+  def get(client, database_id, table_schema_id, key) do
+    GenServer.call(client, {:send, {"table.get", [database_id, table_schema_id, key]}})
   end
 
-  def create(socket, database_id, table_schema_id, value) do
-    WebSockex.cast(socket, {:send, {"table.create", [database_id, table_schema_id, value]}})
+  def create(client, database_id, table_schema_id, value) do
+    GenServer.call(client, {:send, {"table.create", [database_id, table_schema_id, value]}})
   end
 
-  def update(socket, database_id, table_schema_id, key, value) do
-    WebSockex.cast(socket, {:send, {"table.update", [database_id, table_schema_id, key, value]}})
+  def update(client, database_id, table_schema_id, key, value) do
+    GenServer.call(client, {:send, {"table.update", [database_id, table_schema_id, key, value]}})
   end
 
-  def delete(socket, database_id, table_schema_id, key) do
-    WebSockex.cast(socket, {:send, {"table.delete", [database_id, table_schema_id, key]}})
+  def delete(client, database_id, table_schema_id, key) do
+    GenServer.call(client, {:send, {"table.delete", [database_id, table_schema_id, key]}})
   end
 end
