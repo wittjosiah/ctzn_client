@@ -4,6 +4,6 @@ defmodule CtznClient.View do
   """
 
   def get(client, view_schema_id, opts \\ []) do
-    GenServer.call(client, {:send, {"view.get", [view_schema_id, opts]}})
+    GenServer.call(client, {:send, {"view.get", List.flatten([view_schema_id, opts])}})
   end
 end

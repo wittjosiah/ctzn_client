@@ -19,7 +19,10 @@ defmodule CtznClient do
 
     receive do
       {:result, result} ->
-        {:reply, result, state}
+        {:reply, {:ok, result}, state}
+
+      {:error, _} = error ->
+        {:reply, error, state}
     after
       @request_timeout ->
         {:reply, :req_timeout, state}

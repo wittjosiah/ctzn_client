@@ -61,14 +61,15 @@ defmodule CtznClient.Socket do
   end
 
   def handle_frame({:text, msg}, %{client_pid: pid} = state) do
-    %{"result" => result, "id" => id} = parse_frame(msg)
-    send(pid, {:result, result})
+    %{"id" => id} = response = parse_frame(msg)
 
     metadata = state |> log_metadata() |> Keyword.merge(message: msg, message_id: id)
     suffix = log_suffix(state, ["MessageId=#{id}"])
     Logger.debug("CTZN client received frame #{suffix}", metadata)
 
-    {:ok, update_state(state, result)}
+    send_response(pid, response)
+
+    {:ok, update_state(state, response)}
   end
 
   def handle_ping(:ping, state) do
@@ -111,11 +112,17 @@ defmodule CtznClient.Socket do
 
   defp parse_frame(str_msg) do
     with {:ok, msg} <- Jason.decode(str_msg),
-         %{"id" => _, "jsonrpc" => "2.0", "result" => _} <- msg,
-         do: msg
+         %{"id" => _, "jsonrpc" => "2.0"} <- msg do
+      msg
+    else
+      _ -> %{"error" => :invalid_frame}
+    end
   end
 
-  defp update_state(state, %{"sessionId" => _} = result) do
+  defp send_response(pid, %{"error" => error}), do: send(pid, {:error, error})
+  defp send_response(pid, %{"result" => result}), do: send(pid, {:result, result})
+
+  defp update_state(state, %{"result" => %{"sessionId" => _} = result}) do
     %{state | session: Session.parse(result)}
   end
 
