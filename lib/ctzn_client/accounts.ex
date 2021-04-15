@@ -3,34 +3,37 @@ defmodule CtznClient.Accounts do
   Documentation for `CtznClient.Accounts`
   """
 
-  def who_am_i(client) do
-    GenServer.call(client, {:send, {"accounts.whoami", []}})
+  @timeout 30_000
+
+  def who_am_i(client, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"accounts.whoami", []}}, timeout)
   end
 
-  def resume_session(client, session_id) do
-    GenServer.call(client, {:send, {"accounts.resumeSession", [session_id]}})
+  def resume_session(client, session_id, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"accounts.resumeSession", [session_id]}}, timeout)
   end
 
-  def login(client, login_info) do
-    GenServer.call(client, {:send, {"accounts.login", [login_info]}})
+  def login(client, login_info, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"accounts.login", [login_info]}}, timeout)
   end
 
-  def logout(client) do
-    GenServer.call(client, {:send, {"accounts.logout", []}})
+  def logout(client, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"accounts.logout", []}}, timeout)
   end
 
-  def register(client, register_info) do
-    GenServer.call(client, {:send, {"accounts.register", [register_info]}})
+  def register(client, register_info, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"accounts.register", [register_info]}}, timeout)
   end
 
-  def request_change_password_code(client, username) do
-    GenServer.call(client, {:send, {"accounts.requestChangePasswordCode", [username]}})
+  def request_change_password_code(client, username, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"accounts.requestChangePasswordCode", [username]}}, timeout)
   end
 
-  def change_password_using_code(client, username, code, new_password) do
+  def change_password_using_code(client, username, code, new_password, timeout \\ @timeout) do
     GenServer.call(
       client,
-      {:send, {"accounts.changePasswordUsingCode", [username, code, new_password]}}
+      {:send, {"accounts.changePasswordUsingCode", [username, code, new_password]}},
+      timeout
     )
   end
 

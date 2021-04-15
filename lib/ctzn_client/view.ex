@@ -3,7 +3,9 @@ defmodule CtznClient.View do
   Documentation for `CtznClient.View`
   """
 
-  def get(client, view_schema_id, opts \\ []) do
-    GenServer.call(client, {:send, {"view.get", List.flatten([view_schema_id, opts])}})
+  @timeout 30_000
+
+  def get(client, view_schema_id, opts \\ [], timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"view.get", List.flatten([view_schema_id, opts])}}, timeout)
   end
 end

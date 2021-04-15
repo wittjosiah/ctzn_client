@@ -3,19 +3,21 @@ defmodule CtznClient.Blob do
   Documentation for `CtznClient.Blob`
   """
 
-  def get(client, database_id, key) do
-    GenServer.call(client, {:send, {"blob.get", [database_id, key]}})
+  @timeout 30_000
+
+  def get(client, database_id, key, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"blob.get", [database_id, key]}}, timeout)
   end
 
-  def create(client, blob) do
-    GenServer.call(client, {:send, {"blob.create", [blob]}})
+  def create(client, blob, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"blob.create", [blob]}}, timeout)
   end
 
-  def update(client, key, blob) do
-    GenServer.call(client, {:send, {"blob.update", [key, blob]}})
+  def update(client, key, blob, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"blob.update", [key, blob]}}, timeout)
   end
 
-  def delete(client, key) do
-    GenServer.call(client, {:send, {"blob.delete", [key]}})
+  def delete(client, key, timeout \\ @timeout) do
+    GenServer.call(client, {:send, {"blob.delete", [key]}}, timeout)
   end
 end
